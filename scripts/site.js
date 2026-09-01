@@ -755,3 +755,58 @@
   // чтобы баннер не добавлял движения в момент загрузки
   setTimeout(function () { note.classList.add('is-in'); }, 1800);
 })();
+
+/* ============================================================
+   Яндекс.Метрика — цели (события конверсии)
+   Без reachGoal счётчик пишет только визиты, а раздел
+   «Конверсии» остаётся пустым. Ниже — базовый набор целей.
+   Идентификаторы должны совпадать с целями типа «JavaScript-
+   событие», созданными в интерфейсе Метрики.
+   ============================================================ */
+(function () {
+  var COUNTER = 110095373;
+
+  function goal(id, params) {
+    if (typeof window.ym !== 'function') return;
+    try { window.ym(COUNTER, 'reachGoal', id, params || {}); } catch (e) {}
+  }
+  // доступ снаружи — на случай ручных вызовов из разметки
+  window.avGoal = goal;
+
+  // --- клики по контактам и целевым кнопкам -----------------
+  document.addEventListener('click', function (ev) {
+    var a = ev.target && ev.target.closest ? ev.target.closest('a[href]') : null;
+    if (!a) return;
+    var href = (a.getAttribute('href') || '').trim();
+    var page = location.pathname.split('/').pop() || 'index.html';
+
+    if (/^(tg:|https?:\/\/(t\.me|telegram\.me)\/)/i.test(href)) {
+      goal('tg_click', { page: page });
+    } else if (/^mailto:/i.test(href)) {
+      goal('email_click', { page: page });
+    } else if (/^tel:/i.test(href)) {
+      goal('phone_click', { page: page });
+    } else if (/(^|\/)contacts\.html/i.test(href)) {
+      goal('cta_contacts', { page: page });
+    } else if (/(^|\/)pricing\.html/i.test(href)) {
+      goal('view_pricing', { page: page });
+    } else if (/(^|\/)case-[a-z0-9-]+\.html/i.test(href)) {
+      goal('open_case', { page: page });
+    }
+  }, true);
+
+  // --- вовлечённость: глубокий скролл и время на странице ----
+  var fired = {};
+  function once(id) { if (fired[id]) return; fired[id] = 1; goal(id); }
+
+  window.addEventListener('scroll', function () {
+    var doc = document.documentElement;
+    var total = doc.scrollHeight - window.innerHeight;
+    if (total <= 0) return;
+    var pct = (window.pageYOffset || doc.scrollTop) / total * 100;
+    if (pct >= 50) once('scroll_50');
+    if (pct >= 90) once('scroll_90');
+  }, { passive: true });
+
+  setTimeout(function () { once('time_60s'); }, 60000);
+})();
